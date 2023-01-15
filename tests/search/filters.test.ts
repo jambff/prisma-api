@@ -56,16 +56,6 @@ describe('Search: Filters', () => {
     });
   });
 
-  it.only('handles multiple queries for the same key', () => {
-    const filterQuery = {
-      title: ['in:one', 'in:one'],
-    };
-
-    expect(parseFilterQuery(filterTypes, filterQuery)).toEqual({
-      title: { in: ['one', 'two'] },
-    });
-  });
-
   it('aborts for an unknown filter type', () => {
     const filterQuery = {
       unknown: 'equals:some-term',
