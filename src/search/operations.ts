@@ -1,5 +1,5 @@
 // https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#filter-conditions-and-operators
-export const searchFilterOperations = [
+const searchFilterBaseOperations = [
   'equals',
   'in',
   'notIn',
@@ -15,14 +15,8 @@ export const searchFilterOperations = [
   'not',
 ] as const;
 
-// https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#relation-filters
 // https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#scalar-list-filters
-export const searchFilterReferenceOperations = [
-  'some',
-  'every',
-  'none',
-  'is',
-  'isNot',
+const searchFilterScalarListOperations = [
   'has',
   'hasEvery',
   'hasSome',
@@ -30,6 +24,21 @@ export const searchFilterReferenceOperations = [
   'isSet',
   'equals',
 ] as const;
+
+// https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#relation-filters
+export const searchFilterReferenceOperations = [
+  'some',
+  'every',
+  'none',
+  'is',
+  'isNot',
+  'has',
+] as const;
+
+export const searchFilterOperations = [
+  ...searchFilterBaseOperations,
+  ...searchFilterScalarListOperations,
+];
 
 export type SearchFilterOperation = (typeof searchFilterOperations)[number];
 
