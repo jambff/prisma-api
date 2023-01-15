@@ -1,4 +1,4 @@
-import { abort } from '../abort';
+import { abort } from '@jambff/api';
 import { SearchFilterOperation, searchFilterOperations } from './operations';
 
 export enum FilterTypeEnum {
