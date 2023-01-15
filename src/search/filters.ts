@@ -8,7 +8,9 @@ export enum FilterTypeEnum {
   DATE,
 }
 
-type FilterType = FilterTypeEnum | Record<string, any>;
+type FilterTypeReference = { [key: string]: any };
+
+type FilterType = FilterTypeEnum | FilterTypeReference;
 
 export type FilterTypes<T extends Record<string, any>> = {
   [key in keyof Required<T>]: FilterType;
@@ -16,7 +18,7 @@ export type FilterTypes<T extends Record<string, any>> = {
 
 export type SearchFilters<T> = Partial<Record<keyof T, string>>;
 
-type SearchFilterConfig = {
+type ParsedFilterQuery = {
   key: string;
   operation: SearchFilterOperation;
   term: string;
@@ -37,6 +39,10 @@ type WhereQuery = Record<
 
 const isValidDate = (date: Date) => !Number.isNaN(date.getTime());
 
+const isFilterTypeReference = (
+  filterType: FilterType,
+): filterType is FilterTypeReference => typeof filterType === 'object';
+
 /**
  * Check if a string is a valid filter operation.
  */
@@ -55,7 +61,7 @@ const getConvertedTerm = (
     const number = Number(term);
 
     if (!Number.isFinite(number)) {
-      abort(400, `"${term}" is not a valid number for key ${key}`);
+      abort(400, `"${term}" is not a valid number for key "${key}"`);
     }
 
     return number;
@@ -79,7 +85,7 @@ const getConvertedTerm = (
     return date;
   }
 
-  abort(400, `The term "${term}" could not be converted for key ${key}`);
+  abort(400, `"${term}" could not be converted for key "${key}"`);
 };
 
 /**
@@ -87,37 +93,35 @@ const getConvertedTerm = (
  */
 const buildPrismaWhereQuery = <T extends Record<string, any>>(
   filterTypes: FilterTypes<T>,
-  filterConfigs: SearchFilterConfig[] = [],
+  parsedFilterQueries: ParsedFilterQuery[],
 ) => {
   const initialValue: WhereQuery = [];
 
-  return filterConfigs.reduce((acc, { operation, term, key }) => {
-    const filterType = filterTypes[key];
-
+  return parsedFilterQueries.reduce((acc, { operation, term, key }) => {
     if (key.includes('.')) {
       const [actualKey, referenceOperation, childKey] = key.split('.');
-      const convertedTerm = getConvertedTerm(key, filterTypes[childKey], term);
+      const filterType = filterTypes[actualKey];
 
-      if (convertedTerm) {
-        acc.push({
-          [actualKey]: {
-            [referenceOperation]: {
-              [childKey]: { [operation]: convertedTerm },
-            },
-          },
-        });
+      if (!isFilterTypeReference(filterType)) {
+        abort(400, `"${key}" is not a valid filter`);
       }
 
-      return acc;
+      return {
+        ...acc,
+        [actualKey]: {
+          [referenceOperation]: {
+            [childKey]: {
+              [operation]: getConvertedTerm(key, filterType[childKey], term),
+            },
+          },
+        },
+      };
     }
 
-    const convertedTerm = getConvertedTerm(key, filterType, term);
-
-    if (convertedTerm) {
-      acc.push({ [key]: { [operation]: convertedTerm } });
-    }
-
-    return acc;
+    return {
+      ...acc,
+      [key]: { [operation]: getConvertedTerm(key, filterTypes[key], term) },
+    };
   }, initialValue);
 };
 
@@ -171,17 +175,17 @@ export const parseFilterQuery = <T extends Record<string, any>>(
   filterTypes: FilterTypes<T>,
   filterQuery: Record<string, string | string[]>,
 ): WhereQuery => {
-  if (!filterQuery) {
-    return [];
-  }
-
-  const filters = Object.entries(filterQuery).reduce(
+  const initialValue: ParsedFilterQuery[] = [];
+  const parsedFilterQueries = Object.entries(filterQuery).reduce(
     (acc, [key, queryString]) => {
       const queries = parseFilterQueryString(queryString);
 
       queries.forEach(({ operation, term }) => {
         if (!isOperation(operation)) {
-          return;
+          abort(
+            400,
+            `"${operation}" is not a valid operation for key "${key}"`,
+          );
         }
 
         acc.push({
@@ -193,8 +197,8 @@ export const parseFilterQuery = <T extends Record<string, any>>(
 
       return acc;
     },
-    [] as SearchFilterConfig[],
+    initialValue,
   );
 
-  return buildPrismaWhereQuery(filterTypes, filters);
+  return buildPrismaWhereQuery(filterTypes, parsedFilterQueries);
 };

@@ -30,7 +30,7 @@
     "dist"
   ],
   "peerDependencies": {
-    "@jambff/api": "^1.9.0",
+    "@jambff/api": "^1.11.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.13.2",
     "class-validator-jsonschema": "^3.1.0",
@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^8.3.4",
-    "@jambff/api": "^1.11.0",
+    "@jambff/api": "^1.11.1",
     "@jest-mock/express": "^1.4.5",
     "@semantic-release/commit-analyzer": "^8.0.1",
     "@semantic-release/git": "^9.0.0",
