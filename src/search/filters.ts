@@ -1,4 +1,5 @@
 import { abort } from '@jambff/api';
+import dot from 'dot-object';
 import { SearchFilterOperation, searchFilterOperations } from './operations';
 
 export enum FilterTypeEnum {
@@ -8,9 +9,7 @@ export enum FilterTypeEnum {
   DATE,
 }
 
-type FilterTypeReference = { [key: string]: any };
-
-type FilterType = FilterTypeEnum | FilterTypeReference;
+type FilterType = FilterTypeEnum | { [key: string]: any };
 
 export type FilterTypes<T extends Record<string, any>> = {
   [key in keyof Required<T>]: FilterType;
@@ -20,12 +19,12 @@ export type SearchFilters<T> = Partial<Record<keyof T, string>>;
 
 type ParsedFilterQuery = {
   key: string;
-  operation: SearchFilterOperation;
+  operation?: string;
   term: string;
 };
 
 type ParsedQuery = {
-  operation: string;
+  operation?: string;
   term: string;
 };
 
@@ -39,15 +38,42 @@ type WhereQuery = Record<
 
 const isValidDate = (date: Date) => !Number.isNaN(date.getTime());
 
-const isFilterTypeReference = (
-  filterType: FilterType,
-): filterType is FilterTypeReference => typeof filterType === 'object';
-
 /**
  * Check if a string is a valid filter operation.
  */
-const isOperation = (operation: string): operation is SearchFilterOperation =>
-  searchFilterOperations.includes(operation as SearchFilterOperation);
+const isValidOperation = (
+  filterKeys: string[],
+  operation?: string,
+): operation is SearchFilterOperation =>
+  !!operation
+    ?.split('.')
+    .every(
+      (part) =>
+        searchFilterOperations.includes(part as SearchFilterOperation) ||
+        filterKeys.includes(part),
+    );
+
+/**
+ * Extract a filter type path from a query.
+ * @example some.categories.some.name.contains > categories.name
+ */
+const getFilterTypePath = (key: string, operation?: string): string =>
+  [
+    key,
+    operation?.split('.').reduce((acc, part) => {
+      if (searchFilterOperations.includes(part as SearchFilterOperation)) {
+        return acc;
+      }
+
+      if (acc) {
+        acc += '.';
+      }
+
+      return `${acc}${part}`;
+    }, ''),
+  ]
+    .filter((x) => x)
+    .join('.');
 
 /**
  * Convert terms to the types that Prisma expects for each field.
@@ -61,7 +87,7 @@ const getConvertedTerm = (
     const number = Number(term);
 
     if (!Number.isFinite(number)) {
-      abort(400, `"${term}" is not a valid number for key "${key}"`);
+      throw new Error();
     }
 
     return number;
@@ -72,20 +98,39 @@ const getConvertedTerm = (
   }
 
   if (filterType === FilterTypeEnum.BOOLEAN) {
-    return Boolean(term);
+    return [1, '1', 'true'].includes(term);
   }
 
   if (filterType === FilterTypeEnum.DATE) {
     const date = new Date(term);
 
     if (!isValidDate(date)) {
-      abort(400, `"${term}" is not a valid date for key "${key}"`);
+      throw new Error();
     }
 
     return date;
   }
 
-  abort(400, `"${term}" could not be converted for key "${key}"`);
+  throw new Error();
+};
+
+/**
+ * Recursively get all filter keys.
+ */
+const getFilterKeys = <T extends Record<string, any>>(
+  filterTypes: FilterTypes<T>,
+): string[] => {
+  const keys: string[] = [];
+
+  Object.entries(filterTypes).forEach(([key, value]) => {
+    if (typeof value === 'object') {
+      keys.push(...getFilterKeys(value));
+    }
+
+    keys.push(key);
+  });
+
+  return [...new Set(keys)];
 };
 
 /**
@@ -95,34 +140,67 @@ const buildPrismaWhereQuery = <T extends Record<string, any>>(
   filterTypes: FilterTypes<T>,
   parsedFilterQueries: ParsedFilterQuery[],
 ) => {
-  const initialValue: WhereQuery = [];
+  const query: WhereQuery = [];
 
-  return parsedFilterQueries.reduce((acc, { operation, term, key }) => {
-    if (key.includes('.')) {
-      const [actualKey, referenceOperation, childKey] = key.split('.');
-      const filterType = filterTypes[actualKey];
+  parsedFilterQueries.forEach(({ operation, term, key }) => {
+    const filterTypePath = getFilterTypePath(key, operation);
+    const filterType = dot.pick(filterTypePath, filterTypes);
+    let convertedTerm;
 
-      if (!isFilterTypeReference(filterType)) {
-        abort(400, `"${key}" is not a valid filter`);
-      }
-
-      return {
-        ...acc,
-        [actualKey]: {
-          [referenceOperation]: {
-            [childKey]: {
-              [operation]: getConvertedTerm(key, filterType[childKey], term),
-            },
-          },
-        },
-      };
+    try {
+      convertedTerm = getConvertedTerm(key, filterType, term);
+    } catch {
+      abort(400, `the term "${term}" for key "${key}" is not valid`);
     }
 
+    const dotPath = operation ? `${key}.${operation}` : key;
+    const dotObject = { [dotPath]: convertedTerm };
+
+    dot.object(dotObject);
+
+    // @ts-ignore
+    query.push(dotObject);
+  });
+
+  return query;
+};
+
+/**
+ * Parse a filter query.
+ * @example
+ *  match:foo > [{ operation: 'match', term: 'foo' }]
+ * @example
+ *  gte:1+lt:2 > [{ operation: 'gte', term: '1' }, { operation: 'lt', term: '2' }]
+ */
+const parseFilterQueryStringItem = (
+  filterKeys: string[],
+  queryString: string,
+): ParsedQuery => {
+  const [partOne, ...remainingParts] = queryString.split(':');
+
+  // If there was no colon we're dealing with a raw value
+  if (partOne === queryString) {
+    return { term: partOne };
+  }
+
+  // Rejoin anything after the first colon for things like dates, which
+  // themselves contain colons.
+  const partTwo = remainingParts.join(':');
+
+  // If this is not an operation then it might mean that the query value
+  // contained a plus that we split on, so re-append this to the previous
+  // query. If an operation is entirely invalid we still pass that through
+  // so we can pick it up later and get a more meaningful validation message.
+  if (!isValidOperation(filterKeys, partOne)) {
     return {
-      ...acc,
-      [key]: { [operation]: getConvertedTerm(key, filterTypes[key], term) },
+      term: `${partOne}:${partTwo}`,
     };
-  }, initialValue);
+  }
+
+  return {
+    operation: partOne,
+    term: partTwo,
+  };
 };
 
 /**
@@ -133,39 +211,22 @@ const buildPrismaWhereQuery = <T extends Record<string, any>>(
  *  gte:1+lt:2 > [{ operation: 'gte', term: '1' }, { operation: 'lt', term: '2' }]
  */
 const parseFilterQueryString = (
+  filterKeys: string[],
   queryStringOrArray: string | string[],
 ): ParsedQuery[] => {
-  const queryString = Array.isArray(queryStringOrArray)
-    ? queryStringOrArray.join('+')
-    : queryStringOrArray;
+  const queryStringArray = Array.isArray(queryStringOrArray)
+    ? queryStringOrArray
+    : [queryStringOrArray];
 
-  const queries = queryString.split(/\+|%2B/g);
+  const parsedQuery: ParsedQuery[] = [];
 
-  return queries.reduce((acc, query, index) => {
-    const [partOne, ...remainingParts] = query.split(':');
-
-    // Rejoin anything after the first colon for things like dates, which
-    // themselves contain colons.
-    const partTwo = remainingParts.join(':');
-
-    // If this is not an operation then it might mean that the query value
-    // contained a plus that we split on, so re-append this to the previous
-    // query. If an operation is entirely invalid we still pass that through
-    // so we can pick it up later and get a more meaningful validation message.
-    if (!isOperation(partOne) && index > 0) {
-      acc[index - 1].term += `+${partOne}`;
-
-      return acc;
-    }
-
-    return [
+  return queryStringArray.reduce(
+    (acc, queryString) => [
       ...acc,
-      {
-        operation: partOne,
-        term: partTwo,
-      },
-    ];
-  }, [] as ParsedQuery[]);
+      parseFilterQueryStringItem(filterKeys, queryString),
+    ],
+    parsedQuery,
+  );
 };
 
 /**
@@ -176,12 +237,18 @@ export const parseFilterQuery = <T extends Record<string, any>>(
   filterQuery: Record<string, string | string[]>,
 ): WhereQuery => {
   const initialValue: ParsedFilterQuery[] = [];
+  const filterKeys = getFilterKeys(filterTypes);
+
   const parsedFilterQueries = Object.entries(filterQuery).reduce(
     (acc, [key, queryString]) => {
-      const queries = parseFilterQueryString(queryString);
+      const queries = parseFilterQueryString(filterKeys, queryString);
+
+      if (!filterKeys.includes(key)) {
+        abort(400, `"${key}" is not a valid filter key`);
+      }
 
       queries.forEach(({ operation, term }) => {
-        if (!isOperation(operation)) {
+        if (operation && !isValidOperation(filterKeys, operation)) {
           abort(
             400,
             `"${operation}" is not a valid operation for key "${key}"`,

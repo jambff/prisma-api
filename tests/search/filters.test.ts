@@ -15,6 +15,10 @@ const filterTypes = {
     id: FilterTypeEnum.NUMBER,
     sets: FilterTypeEnum.NUMBER,
     reps: FilterTypeEnum.NUMBER,
+    categories: {
+      id: FilterTypeEnum.NUMBER,
+      name: FilterTypeEnum.STRING,
+    },
   },
 };
 
@@ -24,26 +28,34 @@ describe('Search: Filters', () => {
     jest.setSystemTime(new Date(2020, 3, 1));
   });
 
-  it('parses a complex filter query', () => {
+  it.each`
+    filterQuery                       | result
+    ${{ id: 'equals:1' }}             | ${{ id: { equals: 1 } }}
+    ${{ title: 'contains:my' }}       | ${{ title: { contains: 'my' } }}
+    ${{ createdAt: 'gte:2022-01-1' }} | ${{ createdAt: { gte: new Date('2022-01-01T00:00:00.000Z') } }}
+    ${{ published: 'true' }}          | ${{ published: true }}
+    ${{ imageId: 'lte:10' }}          | ${{ imageId: { lte: 10 } }}
+    ${{ image: 'is.id:100' }}         | ${{ image: { is: { id: 100 } } }}
+  `('parses $filterQuery as a $result', ({ filterQuery, result }) => {
+    expect(parseFilterQuery(filterTypes, filterQuery)).toEqual([result]);
+  });
+
+  it('parses a complex filter query given as an array', () => {
     const filterQuery = {
-      id: 'equals:1',
-      title: 'contains:my',
-      createdAt: 'gte:2022-01-1',
-      published: 'equals:true',
-      imageId: 'lte:10',
-      'image.is.id': 'equals:1',
-      'items.some.sets': 'gte:10',
+      items: [
+        'every.sets.gte:10',
+        'some.categories.some.name.contains:dumbell',
+      ],
     };
 
-    expect(parseFilterQuery(filterTypes, filterQuery)).toEqual({
-      createdAt: { gte: new Date('2022-01-01T00:00:00.000Z') },
-      id: { equals: 1 },
-      imageId: { lte: 10 },
-      image: { is: { id: { equals: 1 } } },
-      items: { some: { sets: { gte: 10 } } },
-      published: { equals: true },
-      title: { contains: 'my' },
-    });
+    expect(parseFilterQuery(filterTypes, filterQuery)).toEqual([
+      { items: { every: { sets: { gte: 10 } } } },
+      {
+        items: {
+          some: { categories: { some: { name: { contains: 'dumbell' } } } },
+        },
+      },
+    ]);
   });
 
   it('rejoins a term containing pluses', () => {
@@ -51,28 +63,48 @@ describe('Search: Filters', () => {
       title: 'contains:my+title',
     };
 
-    expect(parseFilterQuery(filterTypes, filterQuery)).toEqual({
-      title: { contains: 'my+title' },
-    });
+    expect(parseFilterQuery(filterTypes, filterQuery)).toEqual([
+      { title: { contains: 'my+title' } },
+    ]);
   });
 
-  it('aborts for an unknown filter type', () => {
+  it('rejoins a term containing colons', () => {
+    const filterQuery = {
+      createdAt: '2022-01-01T00:00:00.000Z',
+    };
+
+    expect(parseFilterQuery(filterTypes, filterQuery)).toEqual([
+      { createdAt: new Date('2022-01-01T00:00:00.000Z') },
+    ]);
+  });
+
+  it('aborts for an unknown filter key', () => {
     const filterQuery = {
       unknown: 'equals:some-term',
     };
 
     expect(() => parseFilterQuery(filterTypes, filterQuery)).toThrow(
-      '"some-term" could not be converted for key "unknown"',
+      '"unknown" is not a valid filter key',
     );
   });
 
-  it('aborts for an unknown child filter type', () => {
+  it('aborts for an unknown operation', () => {
     const filterQuery = {
-      'image.is.nothing': 'equals:some-term',
+      image: 'not-a-thing:foo',
     };
 
     expect(() => parseFilterQuery(filterTypes, filterQuery)).toThrow(
-      '"some-term" could not be converted for key "image.is.nothing"',
+      'the term "not-a-thing:foo" for key "image" is not valid',
+    );
+  });
+
+  it('aborts for an unknown nested operation', () => {
+    const filterQuery = {
+      image: 'is.nothing.equals:some-term',
+    };
+
+    expect(() => parseFilterQuery(filterTypes, filterQuery)).toThrow(
+      'the term "is.nothing.equals:some-term" for key "image" is not valid',
     );
   });
 
@@ -82,7 +114,7 @@ describe('Search: Filters', () => {
     };
 
     expect(() => parseFilterQuery(filterTypes, filterQuery)).toThrow(
-      '"not-a-number" is not a valid number for key "id"',
+      'the term "not-a-number" for key "id" is not valid',
     );
   });
 
@@ -92,7 +124,7 @@ describe('Search: Filters', () => {
     };
 
     expect(() => parseFilterQuery(filterTypes, filterQuery)).toThrow(
-      '"not-a-date" is not a valid date for key "createdAt"',
+      'the term "not-a-date" for key "createdAt" is not valid',
     );
   });
 
@@ -102,17 +134,7 @@ describe('Search: Filters', () => {
     };
 
     expect(() => parseFilterQuery(filterTypes, filterQuery)).toThrow(
-      '"not-a-thing" is not a valid operation for key "createdAt"',
-    );
-  });
-
-  it('aborts for an unknown child reference', () => {
-    const filterQuery = {
-      'not.a.thing': 'equals:foo',
-    };
-
-    expect(() => parseFilterQuery(filterTypes, filterQuery)).toThrow(
-      '"not.a.thing" is not a valid filter',
+      'the term "not-a-thing:foo" for key "createdAt" is not valid',
     );
   });
 });

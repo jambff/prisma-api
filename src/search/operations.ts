@@ -38,6 +38,7 @@ export const searchFilterReferenceOperations = [
 export const searchFilterOperations = [
   ...searchFilterBaseOperations,
   ...searchFilterScalarListOperations,
+  ...searchFilterReferenceOperations,
 ];
 
 export type SearchFilterOperation = (typeof searchFilterOperations)[number];
