@@ -1,23 +1,23 @@
-import { FilterTypeEnum, parseFilterQuery } from '../../src/search/filters';
+import { FilterType, parseFilterQuery } from '../../src/search/filters';
 
 const filterTypes = {
-  id: FilterTypeEnum.NUMBER,
-  createdAt: FilterTypeEnum.DATE,
-  title: FilterTypeEnum.STRING,
-  imageId: FilterTypeEnum.NUMBER,
-  published: FilterTypeEnum.BOOLEAN,
+  id: FilterType.NUMBER,
+  createdAt: FilterType.DATE,
+  title: FilterType.STRING,
+  imageId: FilterType.NUMBER,
+  published: FilterType.BOOLEAN,
   image: {
-    id: FilterTypeEnum.NUMBER,
-    createdAt: FilterTypeEnum.DATE,
-    src: FilterTypeEnum.STRING,
+    id: FilterType.NUMBER,
+    createdAt: FilterType.DATE,
+    src: FilterType.STRING,
   },
   items: {
-    id: FilterTypeEnum.NUMBER,
-    sets: FilterTypeEnum.NUMBER,
-    reps: FilterTypeEnum.NUMBER,
+    id: FilterType.NUMBER,
+    sets: FilterType.NUMBER,
+    reps: FilterType.NUMBER,
     categories: {
-      id: FilterTypeEnum.NUMBER,
-      name: FilterTypeEnum.STRING,
+      id: FilterType.NUMBER,
+      name: FilterType.STRING,
     },
   },
 };

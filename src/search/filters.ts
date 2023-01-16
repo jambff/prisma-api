@@ -2,17 +2,17 @@ import { abort } from '@jambff/api';
 import dot from 'dot-object';
 import { SearchFilterOperation, searchFilterOperations } from './operations';
 
-export enum FilterTypeEnum {
+export enum FilterType {
   STRING,
   NUMBER,
   BOOLEAN,
   DATE,
 }
 
-type FilterType = FilterTypeEnum | { [key: string]: any };
+type FilterTypeOrObject = FilterType | { [key: string]: any };
 
 export type FilterTypes<T extends Record<string, any>> = {
-  [key in keyof Required<T>]: FilterType;
+  [key in keyof Required<T>]: FilterTypeOrObject;
 };
 
 export type SearchFilters<T> = Partial<Record<keyof T, string>>;
@@ -78,12 +78,8 @@ const getFilterTypePath = (key: string, operation?: string): string =>
 /**
  * Convert terms to the types that Prisma expects for each field.
  */
-const getConvertedTerm = (
-  key: string,
-  filterType: FilterType,
-  term: string,
-) => {
-  if (filterType === FilterTypeEnum.NUMBER) {
+const getConvertedTerm = (filterType: FilterTypeOrObject, term: string) => {
+  if (filterType === FilterType.NUMBER) {
     const number = Number(term);
 
     if (!Number.isFinite(number)) {
@@ -93,15 +89,15 @@ const getConvertedTerm = (
     return number;
   }
 
-  if (filterType === FilterTypeEnum.STRING) {
+  if (filterType === FilterType.STRING) {
     return String(term);
   }
 
-  if (filterType === FilterTypeEnum.BOOLEAN) {
+  if (filterType === FilterType.BOOLEAN) {
     return [1, '1', 'true'].includes(term);
   }
 
-  if (filterType === FilterTypeEnum.DATE) {
+  if (filterType === FilterType.DATE) {
     const date = new Date(term);
 
     if (!isValidDate(date)) {
@@ -148,7 +144,7 @@ const buildPrismaWhereQuery = <T extends Record<string, any>>(
     let convertedTerm;
 
     try {
-      convertedTerm = getConvertedTerm(key, filterType, term);
+      convertedTerm = getConvertedTerm(filterType, term);
     } catch {
       abort(400, `the term "${term}" for key "${key}" is not valid`);
     }
