@@ -1,23 +1,15 @@
 import { ValidationOptions } from 'class-validator';
 import { SchemaObject } from 'openapi3-ts';
 import { IsDeepObject } from '@jambff/api';
-import {
-  searchFilterOperations,
-  searchFilterReferenceOperations,
-} from '../search/operations';
 import { FilterTypes } from '../search/filters';
 
 const propertyDefinition = {
   type: 'string',
-  pattern: `^((${searchFilterOperations
-    .join('|')
-    .replace(/\./g, '\\.')}):[^+]+)`,
 };
 
 type PropertyDefinitions = {
   [x in string]: {
     type: string;
-    pattern: string;
   };
 };
 
@@ -26,19 +18,8 @@ const createSearchFilterSchema = <T extends Record<string, any>>(
 ): SchemaObject => {
   const initialValue: PropertyDefinitions = {};
 
-  return Object.entries(filterTypes).reduce((acc, [key, value]) => {
-    if (typeof value === 'object') {
-      Object.keys(value).forEach((childKey) => {
-        searchFilterReferenceOperations.forEach(
-          (searchFilterReferenceOperation) => {
-            acc[`${key}.${searchFilterReferenceOperation}.${childKey}`] =
-              propertyDefinition;
-          },
-        );
-      });
-    } else {
-      acc[key] = propertyDefinition;
-    }
+  return Object.keys(filterTypes).reduce((acc, key) => {
+    acc[key] = propertyDefinition;
 
     return acc;
   }, initialValue);
@@ -55,9 +36,7 @@ export const IsFilterSchema =
     IsDeepObject(filterSchema, {
       message:
         'filter must be in the format filter[<key>]=<query> where <key> is one of ' +
-        `${Object.values(Object.keys(filterSchema)).join(', ')} ` +
-        'and <query> contains one or more items in the format <operation>:<value>, ' +
-        `where <operation> is one of ${searchFilterOperations.join(', ')}`,
+        `${Object.values(Object.keys(filterSchema)).join(', ')} `,
       ...options,
     })(object, propertyName);
   };
