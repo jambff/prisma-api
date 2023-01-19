@@ -20,6 +20,7 @@ const filterTypes = {
       name: FilterType.STRING,
     },
   },
+  notAllowed: null,
 };
 
 describe('Search: Filters', () => {
@@ -135,6 +136,16 @@ describe('Search: Filters', () => {
 
     expect(() => parseFilterQuery(filterTypes, filterQuery)).toThrow(
       'the term "not-a-thing:foo" for key "createdAt" is not valid',
+    );
+  });
+
+  it('aborts for a null filter key', () => {
+    const filterQuery = {
+      notAllowed: 'hello',
+    };
+
+    expect(() => parseFilterQuery(filterTypes, filterQuery)).toThrow(
+      'the term "hello" for key "notAllowed" is not valid',
     );
   });
 });

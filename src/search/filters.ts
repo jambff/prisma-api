@@ -12,7 +12,7 @@ export enum FilterType {
 type FilterTypeOrObject = FilterType | { [key: string]: any };
 
 export type FilterTypes<T extends Record<string, any>> = {
-  [key in keyof Required<T>]: FilterTypeOrObject;
+  [key in keyof Required<T>]: FilterTypeOrObject | null;
 };
 
 export type SearchFilters<T> = Partial<Record<keyof T, string>>;
@@ -119,7 +119,7 @@ const getFilterKeys = <T extends Record<string, any>>(
   const keys: string[] = [];
 
   Object.entries(filterTypes).forEach(([key, value]) => {
-    if (typeof value === 'object') {
+    if (value && typeof value === 'object') {
       keys.push(...getFilterKeys(value));
     }
 
