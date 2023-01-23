@@ -11,7 +11,7 @@ export enum FilterType {
 
 type FilterTypeOrObject = FilterType | { [key: string]: any };
 
-export type FilterTypes<T extends Record<string, any>> = {
+type FilterTypes<T extends Record<string, any>> = {
   [key in keyof Required<T>]: FilterTypeOrObject | null;
 };
 
@@ -265,3 +265,14 @@ export const parseFilterQuery = <T extends Record<string, any>>(
 
   return buildPrismaWhereQuery(filterTypes, parsedFilterQueries);
 };
+
+/**
+ * Create filter types.
+ *
+ * Passing the filter types object through a function helps with TS flagging any
+ * circular references, even through the error messages will be a little
+ * abstract. Maybe improve later.
+ */
+export const createFilterTypes = <T extends Record<string, any>>(
+  filterTypes: FilterTypes<T>,
+): FilterTypes<T> => filterTypes;
