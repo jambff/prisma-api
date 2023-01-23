@@ -9,8 +9,8 @@ export type IncludesParam<T> = Partial<{
   [K in keyof T]: string | string[];
 }>;
 
-export const parseIncludeQuery = <T>(
-  includes: Includes<T>,
+export const parseIncludeQuery = <T extends Record<string, any>>(
+  includes: T,
   query?: IncludesParam<T>,
 ) => {
   const cleanIncludes: Record<
@@ -39,7 +39,7 @@ export const parseIncludeQuery = <T>(
       include: value.reduce((acc, part: string) => {
         const child = includes[key as keyof T];
 
-        if (typeof child === 'object' && !(part in child)) {
+        if (child && typeof child === 'object' && !child[part]) {
           abort(400, `"${part}" is not a valid value for includes[${key}][]`);
         }
 

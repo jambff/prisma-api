@@ -47,7 +47,7 @@ const createIncludeSchema = <T>(includes: Includes<T>): SchemaObject => {
 };
 
 export const IsIncludeSchema =
-  <T>(includes: Includes<T>, options?: ValidationOptions) =>
+  <T extends Record<string, any>>(includes: T, options?: ValidationOptions) =>
   (object: Object, propertyName: string) => {
     const schema = createIncludeSchema(includes);
 
