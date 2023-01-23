@@ -23,7 +23,7 @@ const filterTypes = {
   notAllowed: null,
 };
 
-describe('Search: Filters', () => {
+describe('Filters', () => {
   beforeAll(() => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date(2020, 3, 1));
