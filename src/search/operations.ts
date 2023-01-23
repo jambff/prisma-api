@@ -42,5 +42,3 @@ export const searchFilterOperations = [
 ];
 
 export type SearchFilterOperation = (typeof searchFilterOperations)[number];
-
-export const ascDescSortOperations: string[] = ['asc', 'desc'];
