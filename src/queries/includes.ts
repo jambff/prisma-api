@@ -57,7 +57,3 @@ export const parseIncludeQuery = <T>(
 
   return cleanIncludes;
 };
-
-export const createIncludes = <T extends Record<string, any>>(
-  includes: Includes<T>,
-): Includes<T> => includes;
