@@ -1,7 +1,7 @@
 import { ValidationOptions } from 'class-validator';
 import { SchemaObject } from 'openapi3-ts';
 import { IsDeepObject } from '@jambff/api';
-import { FilterTypes } from '../search/filters';
+import { FilterTypes } from '../queries/filters';
 
 const propertyDefinition = {
   type: 'string',

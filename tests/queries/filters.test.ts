@@ -1,4 +1,4 @@
-import { FilterType, parseFilterQuery } from '../../src/search/filters';
+import { FilterType, parseFilterQuery } from '../../src/queries/filters';
 
 const filterTypes = {
   id: FilterType.NUMBER,
