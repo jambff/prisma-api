@@ -11,7 +11,7 @@ export enum FilterType {
 
 type FilterTypeOrObject = FilterType | { [key: string]: any };
 
-type FilterTypes<T extends Record<string, any>> = {
+export type FilterTypes<T extends Record<string, any>> = {
   [key in keyof Required<T>]: FilterTypeOrObject | null;
 };
 
