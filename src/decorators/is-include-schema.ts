@@ -19,12 +19,13 @@ type PropertyDefinitions = {
 
 const createIncludeSchema = <T>(includes: Includes<T>): SchemaObject => {
   const initialValue: PropertyDefinitions = {};
+  const baseOneOf = [{ type: 'boolean' }, { type: 'string' }];
 
   return Object.entries(includes).reduce((acc, [key, value]) => {
     if (!value || typeof value !== 'object') {
       return {
         ...acc,
-        [key]: { type: 'boolean' },
+        [key]: { oneOf: baseOneOf },
       };
     }
 
@@ -32,7 +33,7 @@ const createIncludeSchema = <T>(includes: Includes<T>): SchemaObject => {
       ...acc,
       [key]: {
         oneOf: [
-          { type: 'boolean' },
+          ...baseOneOf,
           {
             type: 'array',
             items: {
