@@ -7,10 +7,14 @@ class Thing {
   foo: { id: number; name: string };
 
   bars: { id: number; name: string }[];
+
+  bazs: { id: number; name: string }[];
 }
 
-class BaseThing extends OmitClass('BaseThing', Thing, ['foo', 'bars']) {
-  bars: { id: number; rank: number };
+class BaseThing extends OmitClass('BaseThing', Thing, ['foo', 'bars', 'bazs']) {
+  bars: { id: number; duration: number };
+
+  bazs: { id: number; rank: number };
 }
 
 const { updateConnections, createConnections } = createConnectionHelpers<
@@ -22,83 +26,169 @@ const { updateConnections, createConnections } = createConnectionHelpers<
     key: 'bars',
     entity: 'bar',
   },
+  bazs: {
+    key: 'bazs',
+    entity: 'baz',
+    orderKey: 'rank',
+  },
 });
 
 describe('Connections', () => {
-  it('creates connections', () => {
-    expect(
-      createConnections({
-        fooId: 1,
-        bars: [
-          { id: 2, rank: 3 },
-          { id: 3, rank: 4 },
-        ],
-      }),
-    ).toEqual({
-      bars: {
-        create: [
-          {
-            rank: 3,
-            bar: {
-              connect: {
-                id: 2,
+  describe('create', () => {
+    it('creates connections', () => {
+      expect(
+        createConnections({
+          fooId: 1,
+          bars: [
+            { id: 2, duration: 3 },
+            { id: 3, duration: 4 },
+          ],
+          bazs: [],
+        }),
+      ).toEqual({
+        bars: {
+          create: [
+            {
+              duration: 3,
+              bar: {
+                connect: {
+                  id: 2,
+                },
               },
             },
-          },
-          {
-            rank: 4,
-            bar: {
-              connect: {
-                id: 3,
+            {
+              duration: 4,
+              bar: {
+                connect: {
+                  id: 3,
+                },
               },
             },
-          },
-        ],
-      },
-      foo: {
-        connect: {
-          id: 1,
+          ],
         },
-      },
+        foo: {
+          connect: {
+            id: 1,
+          },
+        },
+      });
+    });
+
+    it('creates connections with a rank', () => {
+      expect(
+        createConnections({
+          fooId: 1,
+          bars: [],
+          bazs: [
+            { id: 2, duration: 3 },
+            { id: 3, duration: 4 },
+          ],
+        }),
+      ).toEqual({
+        bazs: {
+          create: [
+            {
+              duration: 3,
+              rank: 0,
+              baz: {
+                connect: {
+                  id: 2,
+                },
+              },
+            },
+            {
+              duration: 4,
+              rank: 1,
+              baz: {
+                connect: {
+                  id: 3,
+                },
+              },
+            },
+          ],
+        },
+        foo: {
+          connect: {
+            id: 1,
+          },
+        },
+      });
     });
   });
 
-  it('updates connections', () => {
-    expect(
-      updateConnections({
-        fooId: 1,
-        bars: [
-          { id: 2, rank: 3 },
-          { id: 3, rank: 4 },
-        ],
-      }),
-    ).toEqual({
-      bars: {
-        deleteMany: {},
-        create: [
-          {
-            rank: 3,
-            bar: {
-              connect: {
-                id: 2,
+  describe('update', () => {
+    it('updates connections', () => {
+      expect(
+        updateConnections({
+          fooId: 1,
+          bars: [
+            { id: 2, duration: 3 },
+            { id: 3, duration: 4 },
+          ],
+        }),
+      ).toEqual({
+        bars: {
+          deleteMany: {},
+          create: [
+            {
+              duration: 3,
+              bar: {
+                connect: {
+                  id: 2,
+                },
               },
             },
-          },
-          {
-            rank: 4,
-            bar: {
-              connect: {
-                id: 3,
+            {
+              duration: 4,
+              bar: {
+                connect: {
+                  id: 3,
+                },
               },
             },
-          },
-        ],
-      },
-      foo: {
-        connect: {
-          id: 1,
+          ],
         },
-      },
+        foo: {
+          connect: {
+            id: 1,
+          },
+        },
+      });
+    });
+
+    it('updates connections with a rank', () => {
+      expect(
+        updateConnections({
+          bazs: [
+            { id: 2, duration: 3 },
+            { id: 3, duration: 4 },
+          ],
+        }),
+      ).toEqual({
+        bazs: {
+          deleteMany: {},
+          create: [
+            {
+              duration: 3,
+              rank: 0,
+              baz: {
+                connect: {
+                  id: 2,
+                },
+              },
+            },
+            {
+              duration: 4,
+              rank: 1,
+              baz: {
+                connect: {
+                  id: 3,
+                },
+              },
+            },
+          ],
+        },
+      });
     });
   });
 });
