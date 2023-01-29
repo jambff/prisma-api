@@ -19,8 +19,8 @@ const { updateConnections, createConnections } = createConnectionHelpers<
 >({
   fooId: 'foo',
   bars: {
-    entity: 'bars',
-    relation: 'bar',
+    key: 'bars',
+    entity: 'bar',
   },
 });
 

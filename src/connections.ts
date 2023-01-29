@@ -1,4 +1,4 @@
-type MappedPropertyObject<T> = { entity: keyof T; relation: string };
+type MappedPropertyObject<T> = { key: keyof T; entity: string };
 
 type MappedProperty<T> = keyof T | MappedPropertyObject<T>;
 
@@ -43,7 +43,7 @@ export const createConnections = <
 
   Object.entries(connectionMap).forEach(([idKey, mappedProperty]) => {
     const mappedEntity = isMappedEntity(mappedProperty)
-      ? mappedProperty.entity
+      ? mappedProperty.key
       : mappedProperty;
 
     delete connectedData[idKey];
@@ -59,10 +59,7 @@ export const createConnections = <
 
     if (isMappedEntity(mappedProperty)) {
       connectedData[mappedEntity as keyof (T | U)] = {
-        create: getMappedEntityCreateQuery(
-          data[idKey],
-          mappedProperty.relation,
-        ),
+        create: getMappedEntityCreateQuery(data[idKey], mappedProperty.entity),
       };
 
       return;
@@ -89,7 +86,7 @@ export const updateConnections = <
 
   Object.entries(connectionMap).forEach(([idKey, mappedProperty]) => {
     const mappedEntity = isMappedEntity(mappedProperty)
-      ? mappedProperty.entity
+      ? mappedProperty.key
       : mappedProperty;
 
     delete connectedData[idKey];
@@ -106,10 +103,7 @@ export const updateConnections = <
     if (isMappedEntity(mappedProperty)) {
       connectedData[mappedEntity as keyof (T | U)] = {
         deleteMany: {},
-        create: getMappedEntityCreateQuery(
-          data[idKey],
-          mappedProperty.relation,
-        ),
+        create: getMappedEntityCreateQuery(data[idKey], mappedProperty.entity),
       };
 
       return;
