@@ -1,23 +1,53 @@
-export const toIdArray = (arr: ({ id: number } | number)[]) =>
+type MappedPropertyObject<T> = { entity: keyof T; relation: string };
+
+type MappedProperty<T> = keyof T | MappedPropertyObject<T>;
+
+type ConnectionMap<
+  T extends Record<string, any>,
+  U extends Record<string, any>,
+> = {
+  [key in keyof Partial<T & U>]: MappedProperty<U>;
+};
+
+const toIdArray = (arr: ({ id: number } | number)[]) =>
   arr
     .map((item) => (typeof item === 'object' ? item.id : item))
     .filter((id) => id)
     .map((id) => ({ id }));
+
+const isMappedEntity = <T>(
+  mappedProperty: MappedProperty<T>,
+): mappedProperty is MappedPropertyObject<T> =>
+  typeof mappedProperty === 'object' && !!mappedProperty.entity;
+
+const getMappedEntityCreateQuery = (data: { id: number }[], relation: string) =>
+  data.map(({ id, ...restProps }: { id: number }) => ({
+    ...restProps,
+    [relation]: {
+      connect: {
+        id,
+      },
+    },
+  }));
 
 export const createConnections = <
   T extends Record<string, any>,
   U extends Record<string, any> = T,
 >(
   data: { [key in keyof T]: any },
-  connectionMap: { [key in keyof Partial<T & U>]: keyof U },
+  connectionMap: ConnectionMap<T, U>,
 ) => {
   const connectedData: { [key in keyof (T | U)]: any } = { ...data } as {
     [key in keyof T]: any;
   };
 
   Object.entries(connectionMap).forEach(([idKey, mappedProperty]) => {
+    const mappedEntity = isMappedEntity(mappedProperty)
+      ? mappedProperty.entity
+      : mappedProperty;
+
     delete connectedData[idKey];
-    delete connectedData[mappedProperty as keyof (T | U)];
+    delete connectedData[mappedEntity as keyof (T | U)];
 
     const value = Array.isArray(data[idKey])
       ? toIdArray(data[idKey])
@@ -27,7 +57,18 @@ export const createConnections = <
       return;
     }
 
-    connectedData[mappedProperty as keyof (T | U)] = {
+    if (isMappedEntity(mappedProperty)) {
+      connectedData[mappedEntity as keyof (T | U)] = {
+        create: getMappedEntityCreateQuery(
+          data[idKey],
+          mappedProperty.relation,
+        ),
+      };
+
+      return;
+    }
+
+    connectedData[mappedEntity as keyof (T | U)] = {
       connect: Array.isArray(data[idKey]) ? value : { id: value },
     };
   });
@@ -40,15 +81,19 @@ export const updateConnections = <
   U extends Record<string, any>,
 >(
   data: { [key in keyof Partial<T>]: any },
-  connectionMap: { [key in keyof Partial<T & U>]: keyof U },
+  connectionMap: ConnectionMap<T, U>,
 ) => {
   const connectedData: { [key in keyof (T | U)]: any } = { ...data } as {
     [key in keyof T]: any;
   };
 
   Object.entries(connectionMap).forEach(([idKey, mappedProperty]) => {
+    const mappedEntity = isMappedEntity(mappedProperty)
+      ? mappedProperty.entity
+      : mappedProperty;
+
     delete connectedData[idKey];
-    delete connectedData[mappedProperty as keyof (T | U)];
+    delete connectedData[mappedEntity as keyof (T | U)];
 
     const value = Array.isArray(data[idKey])
       ? toIdArray(data[idKey])
@@ -58,7 +103,19 @@ export const updateConnections = <
       return;
     }
 
-    connectedData[mappedProperty as keyof (T | U)] = {
+    if (isMappedEntity(mappedProperty)) {
+      connectedData[mappedEntity as keyof (T | U)] = {
+        deleteMany: {},
+        create: getMappedEntityCreateQuery(
+          data[idKey],
+          mappedProperty.relation,
+        ),
+      };
+
+      return;
+    }
+
+    connectedData[mappedEntity as keyof (T | U)] = {
       [Array.isArray(data[idKey]) ? 'set' : 'connect']: Array.isArray(
         data[idKey],
       )
@@ -73,7 +130,9 @@ export const updateConnections = <
 export const createConnectionHelpers = <
   T extends Record<string, any>,
   U extends Record<string, any>,
->(connectionMap: { [key in keyof Partial<T & U>]: keyof U }) => ({
+>(
+  connectionMap: ConnectionMap<T, U>,
+) => ({
   createConnections: (data: { [key in keyof T]: any }) =>
     createConnections<T, U>(data, connectionMap),
   updateConnections: (data: { [key in keyof Partial<T>]: any }) =>
