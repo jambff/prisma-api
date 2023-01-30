@@ -1,6 +1,14 @@
-import { parseIncludeQuery } from '../../src/queries/includes';
+import { Includes, parseIncludeQuery } from '../../src/queries/includes';
 
-const includes = {
+class Thing {
+  foo: string;
+
+  bar: { baz: { id: number }; qux: { id: number } };
+
+  quux: { corge: { id: number }; rank: number };
+}
+
+const includes: Includes<Thing> = {
   foo: true,
   bar: {
     include: {
@@ -8,9 +16,9 @@ const includes = {
       qux: true,
     },
   },
-  baz: {
+  quux: {
     include: {
-      quz: true,
+      corge: true,
     },
     orderBy: {
       rank: 'asc',
@@ -32,8 +40,8 @@ describe('Includes', () => {
     ${{ foo: 'something-else' }} | ${{ foo: false }}
     ${{ bar: ['baz'] }}          | ${{ bar: { include: { baz: true } } }}
     ${{ bar: ['baz', 'qux'] }}   | ${{ bar: { include: { baz: true, qux: true } } }}
-    ${{ baz: true }}             | ${{ baz: true }}
-    ${{ baz: ['quz'] }}          | ${{ baz: { include: { quz: true }, orderBy: { rank: 'asc' } } }}
+    ${{ quux: true }}            | ${{ quux: true }}
+    ${{ quux: ['corge'] }}       | ${{ quux: { include: { corge: true }, orderBy: { rank: 'asc' } } }}
   `('parses $query as $result', ({ query, result }) => {
     expect(parseIncludeQuery(includes, query)).toEqual(result);
   });

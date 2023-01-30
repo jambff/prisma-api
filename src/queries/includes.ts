@@ -7,7 +7,14 @@ type NestedInclude = {
 
 // Allow one level of nesting
 export type Includes<T, L extends boolean = false> = Partial<{
-  [K in keyof T]: L extends true ? boolean : Includes<T[K], true> | boolean;
+  [K in keyof T]: L extends true
+    ? boolean
+    :
+        | {
+            include: Includes<T[K], true>;
+            orderBy?: Partial<Record<keyof T[K], 'asc' | 'desc'>>;
+          }
+        | boolean;
 }>;
 
 export type IncludesParam<T> = Partial<{
