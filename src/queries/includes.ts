@@ -1,5 +1,10 @@
 import { abort } from '@jambff/api';
 
+type NestedInclude = {
+  include: Record<string, boolean>;
+  orderBy?: Record<string, 'asc' | 'desc'>;
+};
+
 // Allow one level of nesting
 export type Includes<T, L extends boolean = false> = Partial<{
   [K in keyof T]: L extends true ? boolean : Includes<T[K], true> | boolean;
@@ -13,10 +18,7 @@ export const parseIncludeQuery = <T extends Record<string, any>>(
   includes: T,
   query?: IncludesParam<T>,
 ) => {
-  const cleanIncludes: Record<
-    string,
-    boolean | { include: Record<string, boolean> }
-  > = {};
+  const cleanIncludes: Record<string, boolean | NestedInclude> = {};
 
   Object.entries(query ?? {}).forEach(([key, value]) => {
     if (!(key in includes)) {
@@ -36,10 +38,11 @@ export const parseIncludeQuery = <T extends Record<string, any>>(
     }
 
     cleanIncludes[key] = {
+      orderBy: includes[key].orderBy,
       include: value.reduce((acc, part: string) => {
-        const child = includes[key as keyof T];
+        const { include } = includes[key as keyof T];
 
-        if (child && typeof child === 'object' && !child[part]) {
+        if (include && typeof include === 'object' && !include[part]) {
           abort(400, `"${part}" is not a valid value for includes[${key}][]`);
         }
 
