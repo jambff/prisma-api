@@ -9,12 +9,21 @@ class Thing {
   bars: { id: number; name: string }[];
 
   bazs: { id: number; name: string }[];
+
+  quxs: { id: number; name: string }[];
 }
 
-class BaseThing extends OmitClass('BaseThing', Thing, ['foo', 'bars', 'bazs']) {
+class BaseThing extends OmitClass('BaseThing', Thing, [
+  'foo',
+  'bars',
+  'bazs',
+  'quxs',
+]) {
   bars: { id: number; duration: number };
 
   bazs: { id: number; rank: number };
+
+  quxs: { relatedId: number; name: string }[];
 }
 
 const { updateConnections, createConnections } = createConnectionHelpers<
@@ -31,6 +40,11 @@ const { updateConnections, createConnections } = createConnectionHelpers<
     entity: 'baz',
     orderKey: 'rank',
   },
+  quxs: {
+    key: 'quxs',
+    entity: 'qux',
+    idKey: 'relatedId',
+  },
 });
 
 describe('Connections', () => {
@@ -44,6 +58,7 @@ describe('Connections', () => {
             { id: 3, duration: 4 },
           ],
           bazs: [],
+          quxs: [],
         }),
       ).toEqual({
         bars: {
@@ -83,6 +98,7 @@ describe('Connections', () => {
             { id: 2, duration: 3 },
             { id: 3, duration: 4 },
           ],
+          quxs: [],
         }),
       ).toEqual({
         bazs: {
@@ -102,6 +118,35 @@ describe('Connections', () => {
               baz: {
                 connect: {
                   id: 3,
+                },
+              },
+            },
+          ],
+        },
+        foo: {
+          connect: {
+            id: 1,
+          },
+        },
+      });
+    });
+
+    it('creates connections with a custom ID key', () => {
+      expect(
+        createConnections({
+          fooId: 1,
+          bars: [],
+          bazs: [],
+          quxs: [{ relatedId: 2, duration: 3 }],
+        }),
+      ).toEqual({
+        quxs: {
+          create: [
+            {
+              duration: 3,
+              qux: {
+                connect: {
+                  id: 2,
                 },
               },
             },
@@ -183,6 +228,28 @@ describe('Connections', () => {
               baz: {
                 connect: {
                   id: 3,
+                },
+              },
+            },
+          ],
+        },
+      });
+    });
+
+    it('updates connections with a custom ID key', () => {
+      expect(
+        updateConnections({
+          quxs: [{ relatedId: 2, duration: 3 }],
+        }),
+      ).toEqual({
+        quxs: {
+          deleteMany: {},
+          create: [
+            {
+              duration: 3,
+              qux: {
+                connect: {
+                  id: 2,
                 },
               },
             },

@@ -2,6 +2,7 @@ type MappedPropertyObject<T> = {
   key: keyof T;
   entity: string;
   orderKey?: string;
+  idKey?: string;
 };
 
 type MappedProperty<T> = keyof T | MappedPropertyObject<T>;
@@ -28,8 +29,9 @@ const getMappedEntityCreateQuery = (
   data: { id: number }[],
   relation: string,
   orderKey?: string,
+  idKey: string = 'id',
 ) =>
-  data.map(({ id, ...restProps }: { id: number }, i) => ({
+  data.map(({ [idKey]: id, ...restProps }: { [x: string]: any }, i) => ({
     ...restProps,
     ...(orderKey ? { [orderKey]: i } : {}),
     [relation]: {
@@ -58,23 +60,34 @@ export const createConnections = <
     delete connectedData[idKey];
     delete connectedData[mappedEntity as keyof (T | U)];
 
+    if (isMappedEntity(mappedProperty)) {
+      if (!data[idKey]) {
+        return;
+      }
+
+      const createQuery = getMappedEntityCreateQuery(
+        data[idKey],
+        mappedProperty.entity,
+        mappedProperty.orderKey,
+        mappedProperty.idKey,
+      );
+
+      if (!createQuery.length) {
+        return;
+      }
+
+      connectedData[mappedEntity as keyof (T | U)] = {
+        create: createQuery,
+      };
+
+      return;
+    }
+
     const value = Array.isArray(data[idKey])
       ? toIdArray(data[idKey])
       : data[idKey];
 
     if (!value || (Array.isArray(value) && !value.length)) {
-      return;
-    }
-
-    if (isMappedEntity(mappedProperty)) {
-      connectedData[mappedEntity as keyof (T | U)] = {
-        create: getMappedEntityCreateQuery(
-          data[idKey],
-          mappedProperty.entity,
-          mappedProperty.orderKey,
-        ),
-      };
-
       return;
     }
 
@@ -105,24 +118,35 @@ export const updateConnections = <
     delete connectedData[idKey];
     delete connectedData[mappedEntity as keyof (T | U)];
 
+    if (isMappedEntity(mappedProperty)) {
+      if (!data[idKey]) {
+        return;
+      }
+
+      const createQuery = getMappedEntityCreateQuery(
+        data[idKey],
+        mappedProperty.entity,
+        mappedProperty.orderKey,
+        mappedProperty.idKey,
+      );
+
+      if (!createQuery.length) {
+        return;
+      }
+
+      connectedData[mappedEntity as keyof (T | U)] = {
+        deleteMany: {},
+        create: createQuery,
+      };
+
+      return;
+    }
+
     const value = Array.isArray(data[idKey])
       ? toIdArray(data[idKey])
       : data[idKey];
 
     if (!value || (Array.isArray(value) && !value.length)) {
-      return;
-    }
-
-    if (isMappedEntity(mappedProperty)) {
-      connectedData[mappedEntity as keyof (T | U)] = {
-        deleteMany: {},
-        create: getMappedEntityCreateQuery(
-          data[idKey],
-          mappedProperty.entity,
-          mappedProperty.orderKey,
-        ),
-      };
-
       return;
     }
 
