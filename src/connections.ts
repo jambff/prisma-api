@@ -3,6 +3,7 @@ type MappedPropertyObject<T> = {
   entity: string;
   orderKey?: string;
   idKey?: string;
+  include?: string[];
 };
 
 type MappedProperty<T> = keyof T | MappedPropertyObject<T>;
@@ -29,10 +30,17 @@ const getMappedEntityCreateQuery = (
   data: { id: number }[],
   relation: string,
   orderKey?: string,
+  include?: string[],
   idKey: string = 'id',
 ) =>
   data.map(({ [idKey]: id, ...restProps }: { [x: string]: any }, i) => ({
-    ...restProps,
+    ...Object.entries(restProps).reduce((acc, [key, value]) => {
+      if (!include || include.includes(key)) {
+        Object.assign(acc, { [key]: value });
+      }
+
+      return acc;
+    }, {}),
     ...(orderKey ? { [orderKey]: i } : {}),
     [relation]: {
       connect: {
@@ -69,6 +77,7 @@ export const createConnections = <
         data[idKey],
         mappedProperty.entity,
         mappedProperty.orderKey,
+        mappedProperty.include,
         mappedProperty.idKey,
       );
 
@@ -127,6 +136,7 @@ export const updateConnections = <
         data[idKey],
         mappedProperty.entity,
         mappedProperty.orderKey,
+        mappedProperty.include,
         mappedProperty.idKey,
       );
 

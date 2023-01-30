@@ -23,7 +23,7 @@ class BaseThing extends OmitClass('BaseThing', Thing, [
 
   bazs: { id: number; rank: number };
 
-  quxs: { relatedId: number; name: string }[];
+  quxs: { relatedId: number; name: string; rank: number }[];
 }
 
 const { updateConnections, createConnections } = createConnectionHelpers<
@@ -44,6 +44,7 @@ const { updateConnections, createConnections } = createConnectionHelpers<
     key: 'quxs',
     entity: 'qux',
     idKey: 'relatedId',
+    include: ['name'],
   },
 });
 
@@ -137,13 +138,42 @@ describe('Connections', () => {
           fooId: 1,
           bars: [],
           bazs: [],
-          quxs: [{ relatedId: 2, duration: 3 }],
+          quxs: [{ relatedId: 2, name: 'Foo' }],
         }),
       ).toEqual({
         quxs: {
           create: [
             {
-              duration: 3,
+              name: 'Foo',
+              qux: {
+                connect: {
+                  id: 2,
+                },
+              },
+            },
+          ],
+        },
+        foo: {
+          connect: {
+            id: 1,
+          },
+        },
+      });
+    });
+
+    it('filters out non-included properties', () => {
+      expect(
+        createConnections({
+          fooId: 1,
+          bars: [],
+          bazs: [],
+          quxs: [{ relatedId: 2, name: 'Foo', rank: 3, unknown: 'thing' }],
+        }),
+      ).toEqual({
+        quxs: {
+          create: [
+            {
+              name: 'Foo',
               qux: {
                 connect: {
                   id: 2,
@@ -239,14 +269,36 @@ describe('Connections', () => {
     it('updates connections with a custom ID key', () => {
       expect(
         updateConnections({
-          quxs: [{ relatedId: 2, duration: 3 }],
+          quxs: [{ relatedId: 2, name: 'Foo' }],
         }),
       ).toEqual({
         quxs: {
           deleteMany: {},
           create: [
             {
-              duration: 3,
+              name: 'Foo',
+              qux: {
+                connect: {
+                  id: 2,
+                },
+              },
+            },
+          ],
+        },
+      });
+    });
+
+    it('filters out non-included properties', () => {
+      expect(
+        updateConnections({
+          quxs: [{ relatedId: 2, name: 'Foo', rank: 3, unknown: 'thing' }],
+        }),
+      ).toEqual({
+        quxs: {
+          deleteMany: {},
+          create: [
+            {
+              name: 'Foo',
               qux: {
                 connect: {
                   id: 2,
