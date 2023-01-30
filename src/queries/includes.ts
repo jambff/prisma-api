@@ -5,14 +5,23 @@ type NestedInclude = {
   orderBy?: Record<string, 'asc' | 'desc'>;
 };
 
+type Unarray<T> = T extends Array<infer U> ? U : T;
+
+type OrderBy<T extends Record<string, any>> = Partial<{
+  [K in keyof T]: 'asc' | 'desc';
+}>;
+
 // Allow one level of nesting
-export type Includes<T, L extends boolean = false> = Partial<{
+export type Includes<
+  T extends Record<string, any>,
+  L extends boolean = false,
+> = Partial<{
   [K in keyof T]: L extends true
     ? boolean
     :
         | {
-            include: Includes<T[K], true>;
-            orderBy?: Partial<Record<keyof T[K], 'asc' | 'desc'>>;
+            include: Includes<Unarray<T[K]>, true>;
+            orderBy?: OrderBy<Unarray<T[K]>>;
           }
         | boolean;
 }>;
