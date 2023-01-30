@@ -42,6 +42,9 @@ describe('Includes', () => {
     ${{ bar: ['baz', 'qux'] }}   | ${{ bar: { include: { baz: true, qux: true } } }}
     ${{ quux: true }}            | ${{ quux: true }}
     ${{ quux: ['corge'] }}       | ${{ quux: { include: { corge: true }, orderBy: { rank: 'asc' } } }}
+    ${{}}                        | ${undefined}
+    ${undefined}                 | ${undefined}
+    ${null}                      | ${undefined}
   `('parses $query as $result', ({ query, result }) => {
     expect(parseIncludeQuery(includes, query)).toEqual(result);
   });
