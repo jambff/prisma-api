@@ -17,7 +17,9 @@ type PropertyDefinitions = {
       };
 };
 
-const createIncludeSchema = <T>(includes: Includes<T>): SchemaObject => {
+const createIncludeSchema = <T extends Record<string, any>>(
+  includes: Includes<T>,
+): SchemaObject => {
   const initialValue: PropertyDefinitions = {};
   const baseOneOf = [{ type: 'boolean' }, { type: 'string' }];
 
@@ -38,7 +40,7 @@ const createIncludeSchema = <T>(includes: Includes<T>): SchemaObject => {
             type: 'array',
             items: {
               type: 'string',
-              enum: Object.keys(value),
+              enum: Object.keys(value.include),
             },
           },
         ],
