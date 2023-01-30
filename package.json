@@ -1,6 +1,6 @@
 {
   "name": "@jambff/prisma-api",
-  "version": "2.7.3",
+  "version": "2.7.4",
   "author": "Alex Mendes",
   "license": "MIT",
   "main": "dist/index.js",
