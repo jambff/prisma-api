@@ -12,18 +12,13 @@ type OrderBy<T extends Record<string, any>> = Partial<{
 }>;
 
 // Allow one level of nesting
-export type Includes<
-  T extends Record<string, any>,
-  L extends boolean = false,
-> = Partial<{
-  [K in keyof T]: L extends true
-    ? boolean
-    :
-        | {
-            include: Includes<Unarray<T[K]>, true>;
-            orderBy?: OrderBy<Unarray<T[K]>>;
-          }
-        | boolean;
+export type Includes<T extends Record<string, any>> = Partial<{
+  [K in keyof T]:
+    | {
+        include: Includes<Unarray<T[K]>>;
+        orderBy?: OrderBy<Unarray<T[K]>>;
+      }
+    | boolean;
 }>;
 
 export type IncludesParam<T> = Partial<{
