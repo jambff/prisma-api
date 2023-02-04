@@ -21,9 +21,7 @@ type PropertyDefinitions = {
  * Convert { include: { thing: { include: { thing: true }}}}
  * to thing and thing.thing etc.
  */
-const getEnum = (
-  obj: Record<string, boolean | { include?: Record<string, boolean> }>,
-) => {
+const getEnum = <T extends Record<string, any>>(obj: T) => {
   const nestedValues: string[] = [];
 
   Object.entries(obj).forEach(([key, value]) => {
@@ -37,7 +35,7 @@ const getEnum = (
       return;
     }
 
-    const { include, ...restProps } = value;
+    const { include, ...restProps } = value as Includes<T>;
 
     if (typeof include === 'object') {
       nestedValues.push(key);
