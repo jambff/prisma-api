@@ -1,11 +1,25 @@
 import { Includes, parseIncludeQuery } from '../../src/queries/includes';
 
+class AndYetAnotherThing {
+  id: number;
+}
+
+class YetAnotherThing {
+  thing: AndYetAnotherThing;
+}
+
+class AnotherThing {
+  things: YetAnotherThing[];
+}
+
 class Thing {
   foo: string;
 
   bar: { baz: { id: number }; qux: { id: number } };
 
   quux: { corge: { id: number }; rank: number };
+
+  thing: AnotherThing;
 }
 
 const includes: Includes<Thing> = {
@@ -24,6 +38,15 @@ const includes: Includes<Thing> = {
       rank: 'asc',
     },
   },
+  thing: {
+    include: {
+      things: {
+        include: {
+          thing: true,
+        },
+      },
+    },
+  },
 };
 
 describe('Includes', () => {
@@ -33,11 +56,11 @@ describe('Includes', () => {
     ${{ foo: true }}             | ${{ foo: true }}
     ${{ foo: 'true' }}           | ${{ foo: true }}
     ${{ foo: '1' }}              | ${{ foo: true }}
-    ${{ foo: 0 }}                | ${{ foo: false }}
-    ${{ foo: false }}            | ${{ foo: false }}
-    ${{ foo: 'false' }}          | ${{ foo: false }}
-    ${{ foo: '0' }}              | ${{ foo: false }}
-    ${{ foo: 'something-else' }} | ${{ foo: false }}
+    ${{ foo: 0 }}                | ${undefined}
+    ${{ foo: false }}            | ${undefined}
+    ${{ foo: 'false' }}          | ${undefined}
+    ${{ foo: '0' }}              | ${undefined}
+    ${{ foo: 'something-else' }} | ${undefined}
     ${{ bar: ['baz'] }}          | ${{ bar: { include: { baz: true } } }}
     ${{ bar: ['baz', 'qux'] }}   | ${{ bar: { include: { baz: true, qux: true } } }}
     ${{ quux: true }}            | ${{ quux: true }}
@@ -47,5 +70,11 @@ describe('Includes', () => {
     ${null}                      | ${undefined}
   `('parses $query as $result', ({ query, result }) => {
     expect(parseIncludeQuery(includes, query)).toEqual(result);
+  });
+
+  it('parses a nested query in array form', () => {
+    expect(parseIncludeQuery(includes, { thing: ['things.thing'] })).toEqual({
+      thing: { include: { things: { include: { thing: true } } } },
+    });
   });
 });

@@ -1,4 +1,5 @@
 import { abort } from '@jambff/api';
+import dot from 'dot-object';
 
 type NestedInclude = {
   include: Record<string, boolean>;
@@ -25,6 +26,11 @@ export type IncludesParam<T> = Partial<{
   [K in keyof T]: string | string[];
 }>;
 
+const parseDotValue = (value: string) =>
+  dot.object({
+    [value.split('.').join('.include.')]: true,
+  });
+
 export const parseIncludeQuery = <T extends Record<string, any>>(
   includes: T,
   query?: IncludesParam<T>,
@@ -36,10 +42,14 @@ export const parseIncludeQuery = <T extends Record<string, any>>(
       abort(400, `${key} is not a valid key for includes`);
     }
 
+    if (!value) {
+      return;
+    }
+
     if (!Array.isArray(value)) {
-      cleanIncludes[key] = [true, 1, 'true', '1'].includes(
-        value as string | boolean | number,
-      );
+      if ([true, 1, 'true', '1'].includes(value as string | boolean | number)) {
+        cleanIncludes[key] = true;
+      }
 
       return;
     }
@@ -53,13 +63,21 @@ export const parseIncludeQuery = <T extends Record<string, any>>(
       include: value.reduce((acc, part: string) => {
         const { include } = includes[key as keyof T];
 
-        if (include && typeof include === 'object' && !include[part]) {
-          abort(400, `"${part}" is not a valid value for includes[${key}][]`);
+        if (!include) {
+          return acc;
         }
+
+        const partValue = parseDotValue(part);
+
+        Object.keys(partValue).forEach((partValueKey) => {
+          if (typeof include === 'object' && !include[partValueKey]) {
+            abort(400, `"${part}" is not a valid value for includes[${key}][]`);
+          }
+        });
 
         return {
           ...acc,
-          [part]: true,
+          ...parseDotValue(part),
         };
       }, {}),
     };

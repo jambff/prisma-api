@@ -17,6 +17,48 @@ type PropertyDefinitions = {
       };
 };
 
+/**
+ * Convert { include: { thing: { include: { thing: true }}}}
+ * to thing and thing.thing etc.
+ */
+const getEnum = (
+  obj: Record<string, boolean | { include?: Record<string, boolean> }>,
+) => {
+  const nestedValues: string[] = [];
+
+  Object.entries(obj).forEach(([key, value]) => {
+    if (typeof value !== 'object') {
+      nestedValues.push(key);
+
+      return;
+    }
+
+    const { include, ...restProps } = value;
+
+    if (typeof include === 'object') {
+      nestedValues.push(key);
+
+      Object.entries(include).forEach(([includeKey, includeValue]) => {
+        nestedValues.push(`${key}.${includeKey}`);
+
+        if (typeof includeValue === 'object') {
+          nestedValues.push(
+            ...getEnum(includeValue).map(
+              (nestedKey) => `${key}.${includeKey}.${nestedKey}`,
+            ),
+          );
+        }
+      });
+
+      return;
+    }
+
+    nestedValues.push(...getEnum(restProps).map((nestedKey) => nestedKey));
+  });
+
+  return nestedValues;
+};
+
 const createIncludeSchema = <T extends Record<string, any>>(
   includes: Includes<T>,
 ): SchemaObject => {
@@ -40,7 +82,7 @@ const createIncludeSchema = <T extends Record<string, any>>(
             type: 'array',
             items: {
               type: 'string',
-              enum: Object.keys(value.include),
+              enum: getEnum(value),
             },
           },
         ],
