@@ -27,6 +27,10 @@ const getEnum = (
   const nestedValues: string[] = [];
 
   Object.entries(obj).forEach(([key, value]) => {
+    if (key === 'orderBy') {
+      return;
+    }
+
     if (typeof value !== 'object') {
       nestedValues.push(key);
 
