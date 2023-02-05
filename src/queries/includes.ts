@@ -1,5 +1,6 @@
 import { abort } from '@jambff/api';
 import dot from 'dot-object';
+import deepMerge from 'deepmerge';
 
 type NestedInclude = {
   include: Record<string, boolean>;
@@ -75,10 +76,16 @@ export const parseIncludeQuery = <T extends Record<string, any>>(
           }
         });
 
-        return {
-          ...acc,
-          ...parseDotValue(part),
-        };
+        if (include[part]?.orderBy) {
+          return {
+            ...acc,
+            [part]: {
+              orderBy: include[part].orderBy,
+            },
+          };
+        }
+
+        return deepMerge(acc, parseDotValue(part));
       }, {}),
     };
   });

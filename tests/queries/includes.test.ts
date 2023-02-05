@@ -6,6 +6,8 @@ class AndYetAnotherThing {
 
 class YetAnotherThing {
   thing: AndYetAnotherThing;
+
+  rank: number;
 }
 
 class AnotherThing {
@@ -41,6 +43,9 @@ const includes: Includes<Thing> = {
   thing: {
     include: {
       things: {
+        orderBy: {
+          rank: 'asc',
+        },
         include: {
           thing: true,
         },
@@ -75,6 +80,39 @@ describe('Includes', () => {
   it('parses a nested query in array form', () => {
     expect(parseIncludeQuery(includes, { thing: ['things.thing'] })).toEqual({
       thing: { include: { things: { include: { thing: true } } } },
+    });
+  });
+
+  it('includes an orderBy property for a nested query', () => {
+    expect(parseIncludeQuery(includes, { thing: ['things'] })).toEqual({
+      thing: {
+        include: {
+          things: {
+            orderBy: {
+              rank: 'asc',
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it('includes an orderBy property for a nested query with child', () => {
+    expect(
+      parseIncludeQuery(includes, { thing: ['things', 'things.thing'] }),
+    ).toEqual({
+      thing: {
+        include: {
+          things: {
+            orderBy: {
+              rank: 'asc',
+            },
+            include: {
+              thing: true,
+            },
+          },
+        },
+      },
     });
   });
 });

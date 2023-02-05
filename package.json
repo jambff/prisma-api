@@ -38,6 +38,7 @@
     "routing-controllers-openapi": "^3.1.0"
   },
   "dependencies": {
+    "deepmerge": "^4.3.0",
     "dot-object": "^2.1.4"
   },
   "devDependencies": {
