@@ -3,6 +3,7 @@ import { registerDecorator, ValidationOptions } from 'class-validator';
 
 export const IsUnique =
   (
+    prisma: PrismaClient,
     entity: keyof Omit<PrismaClient, `$${string}`>,
     options?: ValidationOptions,
   ) =>
@@ -15,7 +16,6 @@ export const IsUnique =
       options,
       validator: {
         async validate(value: any) {
-          const prisma = new PrismaClient();
           const count = await prisma[entity].count({
             where: { [propertyName]: value },
           });
