@@ -16,11 +16,14 @@ export const IsUnique =
       options,
       validator: {
         async validate(value: any) {
-          const count = await prisma[entity].count({
+          const item = await prisma[entity].findFirst({
             where: { [propertyName]: value },
           });
 
-          return count === 0;
+          // Note that the comparison to the specific value below isn't strictly
+          // necessary as we obviously already queried by that value above, but
+          // it does make integration testing a bit easier.
+          return item[propertyName] === value;
         },
 
         defaultMessage: () => `${propertyName} must be unique`,
