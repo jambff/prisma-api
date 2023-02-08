@@ -23,7 +23,7 @@ export const IsUnique =
           // Note that the comparison to the specific value below isn't strictly
           // necessary as we obviously already queried by that value above, but
           // it does make integration testing a bit easier.
-          return item[propertyName] === value;
+          return !item || item?.[propertyName] !== value;
         },
 
         defaultMessage: () => `${propertyName} must be unique`,
