@@ -156,7 +156,7 @@ export const updateConnections = <
       ? toIdArray(data[idKey])
       : data[idKey];
 
-    if (!value || (Array.isArray(value) && !value.length)) {
+    if (!value) {
       return;
     }
 
