@@ -76,9 +76,9 @@ const getFilterTypePath = (key: string, operation?: string): string =>
     .join('.');
 
 /**
- * Convert terms to the types that Prisma expects for each field.
+ * Convert a term to the types that Prisma expects for each field.
  */
-const getConvertedTerm = (filterType: FilterTypeOrObject, term: string) => {
+const getConvertedTermItem = (filterType: FilterTypeOrObject, term: string) => {
   if (filterType === FilterType.NUMBER) {
     const number = Number(term);
 
@@ -108,6 +108,23 @@ const getConvertedTerm = (filterType: FilterTypeOrObject, term: string) => {
   }
 
   throw new Error();
+};
+
+/**
+ * Convert terms to the types that Prisma expects for each field.
+ */
+const getConvertedTerm = (
+  filterType: FilterTypeOrObject,
+  term: string,
+  operation?: string,
+) => {
+  if (operation?.endsWith('in') || operation?.endsWith('notIn')) {
+    return (JSON.parse(term) as any[]).map((item) =>
+      getConvertedTermItem(filterType, item),
+    );
+  }
+
+  return getConvertedTermItem(filterType, term);
 };
 
 /**
@@ -144,7 +161,7 @@ const buildPrismaWhereQuery = <T extends Record<string, any>>(
     let convertedTerm;
 
     try {
-      convertedTerm = getConvertedTerm(filterType, term);
+      convertedTerm = getConvertedTerm(filterType, term, operation);
     } catch {
       abort(400, `the term "${term}" for key "${key}" is not valid`);
     }

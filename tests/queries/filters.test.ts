@@ -59,6 +59,30 @@ describe('Filters', () => {
     ]);
   });
 
+  it('parses the in operator as an array', () => {
+    const filterQuery = {
+      items: `id.in:${JSON.stringify([1, 2, 3])}`,
+    };
+
+    expect(parseFilterQuery(filterTypes, filterQuery)).toEqual([
+      { items: { id: { in: [1, 2, 3] } } },
+    ]);
+  });
+
+  it('parses the in and notIn operators as arrays', () => {
+    const filterQuery = {
+      items: [
+        `id.in:${JSON.stringify([1, 2, 3])}`,
+        `categories.name.notIn:${JSON.stringify(['dumbell', 'band'])}`,
+      ],
+    };
+
+    expect(parseFilterQuery(filterTypes, filterQuery)).toEqual([
+      { items: { id: { in: [1, 2, 3] } } },
+      { items: { categories: { name: { notIn: ['dumbell', 'band'] } } } },
+    ]);
+  });
+
   it('rejoins a term containing pluses', () => {
     const filterQuery = {
       title: 'contains:my+title',
