@@ -128,7 +128,15 @@ export const updateConnections = <
     delete connectedData[mappedEntity as keyof (T | U)];
 
     if (isMappedEntity(mappedProperty)) {
-      if (!data[idKey]) {
+      if (typeof data[idKey] === 'undefined') {
+        return;
+      }
+
+      if (data[idKey] === null) {
+        connectedData[mappedEntity as keyof (T | U)] = {
+          deleteMany: {},
+        };
+
         return;
       }
 
@@ -156,7 +164,15 @@ export const updateConnections = <
       ? toIdArray(data[idKey])
       : data[idKey];
 
-    if (!value) {
+    if (typeof value === 'undefined') {
+      return;
+    }
+
+    if (value === null) {
+      connectedData[mappedEntity as keyof (T | U)] = {
+        disconnect: true,
+      };
+
       return;
     }
 

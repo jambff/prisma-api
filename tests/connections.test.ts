@@ -309,5 +309,17 @@ describe('Connections', () => {
         },
       });
     });
+
+    it('removes connections', () => {
+      expect(
+        updateConnections({
+          fooId: null,
+          bars: null,
+        }),
+      ).toEqual({
+        bars: { deleteMany: {} },
+        foo: { disconnect: true },
+      });
+    });
   });
 });
