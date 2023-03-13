@@ -1,6 +1,6 @@
 export const getFullTextSearchQuery = (
   text: string,
-  joinWith: '&' | '|' | ' ' = ' ',
+  joinWith: '&' | '|' = '&',
 ) => ({
   search: `${text
     .split(' ')
