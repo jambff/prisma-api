@@ -315,10 +315,12 @@ describe('Connections', () => {
         updateConnections({
           fooId: null,
           bars: null,
+          bazs: [],
         }),
       ).toEqual({
-        bars: { deleteMany: {} },
         foo: { disconnect: true },
+        bars: { deleteMany: {} },
+        bazs: { deleteMany: {} },
       });
     });
   });

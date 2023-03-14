@@ -149,6 +149,10 @@ export const updateConnections = <
       );
 
       if (!createQuery.length) {
+        connectedData[mappedEntity as keyof (T | U)] = {
+          deleteMany: {},
+        };
+
         return;
       }
 
